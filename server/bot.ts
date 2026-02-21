@@ -64,7 +64,9 @@ class BotManager {
             if (channel && channel.isText()) {
               if (cmd.name.startsWith('/')) {
                 // Execute slash command
-                await channel.send(cmd.name);
+                const args = cmd.name.substring(1).split(' ');
+                const commandName = args.shift()!;
+                await channel.sendSlash(this.client!.user!.id, commandName, args.join(' '));
               } else {
                 await channel.send(cmd.name);
               }
