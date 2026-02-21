@@ -13,7 +13,7 @@ export const commands = pgTable("commands", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   conditionType: text("condition_type").notNull(), // 'interval', 'message'
-  conditionValue: text("condition_value").notNull(), // e.g. '120' or JSON for message filter
+  conditionValue: text("condition_value").notNull(), // e.g. '120' or JSON string for message filter
   channelId: text("channel_id").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   actions: jsonb("actions").$type<string[]>().default([]).notNull(), // List of commands/messages to send

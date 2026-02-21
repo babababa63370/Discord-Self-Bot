@@ -63,7 +63,6 @@ class BotManager {
           } else {
             await (channel as any).send(action);
           }
-          // Small delay between multiple actions
           if (actions.length > 1) await new Promise(r => setTimeout(r, 1000));
         }
       }
@@ -87,7 +86,7 @@ class BotManager {
           await this.executeCommandActions(cmd);
         }
       } catch (e) {
-        console.error("Failed to parse message filter:", e);
+        // Silently ignore invalid JSON
       }
     }
   }
