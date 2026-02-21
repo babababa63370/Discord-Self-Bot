@@ -175,8 +175,11 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="message">Send Message</SelectItem>
-                            <SelectItem value="wait">Wait (ms)</SelectItem>
+                            <SelectItem value="message">💬 Send Message</SelectItem>
+                            <SelectItem value="action">⚡ Action / Slash</SelectItem>
+                            <SelectItem value="wait">⏳ Wait (ms)</SelectItem>
+                            <SelectItem value="if_contains">🔍 If Contains</SelectItem>
+                            <SelectItem value="if_author">👤 If Author ID</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -190,7 +193,12 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
                         <FormControl>
                           <Input 
                             className="h-9 bg-background/50 border-white/10" 
-                            placeholder={form.watch(`actions.${index}.type`) === 'wait' ? "1000" : "Message or /command"}
+                            placeholder={
+                              form.watch(`actions.${index}.type`) === 'wait' ? "1000 (ms)" : 
+                              form.watch(`actions.${index}.type`) === 'if_contains' ? "Text to search..." :
+                              form.watch(`actions.${index}.type`) === 'if_author' ? "Discord User ID..." :
+                              "Message or /command"
+                            }
                             {...field} 
                           />
                         </FormControl>
@@ -210,6 +218,11 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
                 </Button>
               </div>
             ))}
+          </div>
+          <div className="mt-2 p-2 rounded bg-primary/5 border border-primary/10">
+            <p className="text-[10px] text-muted-foreground">
+              💡 Use <code className="text-primary">{{author}}</code>, <code className="text-primary">{{content}}</code>, or <code className="text-primary">{{channel}}</code> as variables.
+            </p>
           </div>
         </div>
 
