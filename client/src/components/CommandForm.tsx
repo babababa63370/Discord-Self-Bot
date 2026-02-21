@@ -30,6 +30,8 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
       conditionType: "interval",
       conditionValue: "120",
       channelId: "",
+      userId: "",
+      matchType: "contains",
       isActive: true,
       actions: [{ type: 'message', value: '' }]
     },
@@ -41,10 +43,21 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
   });
 
   function onSubmit(data: InsertCommand) {
-    // If name is empty, use the first action's value as name
-    if (!data.name && data.actions.length > 0) {
-      data.name = data.actions[0].value.substring(0, 50);
+    const actions = data.actions || [];
+    // Basic validation: ensure we have at least one action with a value
+    if (actions.length === 0 || actions.every((a: any) => !a.value && a.type !== 'wait')) {
+      return;
     }
+
+    // If name is empty, use the first action's value as name
+    if (!data.name && actions.length > 0) {
+      data.name = actions[0].value.substring(0, 50) || "Unnamed Rule";
+    }
+    
+    // Clean up empty strings for IDs
+    if (!data.userId) data.userId = null;
+    if (!data.targetBotId) data.targetBotId = null;
+
     createCommand.mutate(data, {
       onSuccess: () => {
         form.reset();
@@ -91,22 +104,64 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
               name="conditionValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{conditionType === 'interval' ? 'Minutes' : 'Filter (JSON)'}</FormLabel>
+                  <FormLabel>{conditionType === 'interval' ? 'Minutes' : 'Message Content'}</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder={conditionType === "interval" ? "120" : '{"content": "hello", "matchType": "contains"}'} 
+                      placeholder={conditionType === "interval" ? "120" : 'Hello world'} 
                       className="bg-background/50 border-white/10"
                       {...field} 
                     />
                   </FormControl>
-                  <FormDescription className="text-[10px]">
-                    {conditionType === 'message' && 'JSON: {"content": "text", "matchType": "exact|startsWith|contains", "userId": "ID"}'}
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
+
+          {conditionType === 'message' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="matchType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match Strategy</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || 'contains'}>
+                      <FormControl>
+                        <SelectTrigger className="bg-background/50 border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="contains">Contains</SelectItem>
+                        <SelectItem value="exact">Exact Match</SelectItem>
+                        <SelectItem value="startsWith">Starts With</SelectItem>
+                        <SelectItem value="regex">Regex Pattern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Filter by User ID (Optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="123456789..." 
+                        className="bg-background/50 border-white/10 font-mono" 
+                        {...field} 
+                        value={(field.value as string) || ''}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
 
           <FormField
             control={form.control}
@@ -133,7 +188,7 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
                     placeholder="ID of the bot that owns the /command" 
                     className="bg-background/50 border-white/10 font-mono" 
                     {...field} 
-                    value={field.value || ''}
+                    value={(field.value as string) || ''}
                   />
                 </FormControl>
                 <FormDescription className="text-[10px]">Required if you use slash commands like /topargent</FormDescription>
@@ -165,10 +220,10 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
                   <FormField
                     control={form.control}
-                    name={`actions.${index}.type`}
+                    name={`actions.${index}.type` as any}
                     render={({ field }) => (
                       <FormItem>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value as string}>
                           <FormControl>
                             <SelectTrigger className="h-9 bg-background/50 border-white/10">
                               <SelectValue />
@@ -187,19 +242,20 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
                   />
                   <FormField
                     control={form.control}
-                    name={`actions.${index}.value`}
+                    name={`actions.${index}.value` as any}
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
                         <FormControl>
                           <Input 
                             className="h-9 bg-background/50 border-white/10" 
                             placeholder={
-                              form.watch(`actions.${index}.type`) === 'wait' ? "1000 (ms)" : 
-                              form.watch(`actions.${index}.type`) === 'if_contains' ? "Text to search..." :
-                              form.watch(`actions.${index}.type`) === 'if_author' ? "Discord User ID..." :
+                              form.watch(`actions.${index}.type` as any) === 'wait' ? "1000 (ms)" : 
+                              form.watch(`actions.${index}.type` as any) === 'if_contains' ? "Text to search..." :
+                              form.watch(`actions.${index}.type` as any) === 'if_author' ? "Discord User ID..." :
                               "Message or /command"
                             }
                             {...field} 
+                            value={(field.value as string) || ''}
                           />
                         </FormControl>
                       </FormItem>
@@ -221,7 +277,7 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
           </div>
           <div className="mt-2 p-2 rounded bg-primary/5 border border-primary/10">
             <p className="text-[10px] text-muted-foreground">
-              💡 Use <code className="text-primary">{{author}}</code>, <code className="text-primary">{{content}}</code>, or <code className="text-primary">{{channel}}</code> as variables.
+              💡 Use <code className="text-primary">{"{{author}}"}</code>, <code className="text-primary">{"{{content}}"}</code>, or <code className="text-primary">{"{{channel}}"}</code> as variables.
             </p>
           </div>
         </div>

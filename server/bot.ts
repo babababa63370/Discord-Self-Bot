@@ -160,22 +160,44 @@ class BotManager {
       if (!cmd.isActive || cmd.conditionType !== 'message') continue;
 
       try {
-        const filter = JSON.parse(cmd.conditionValue);
         // Vérifie si le message vient du bon salon configuré
         if (msg.channelId !== cmd.channelId) continue;
 
-        const matchesUser = !filter.userId || msg.author.id === filter.userId;
+        const matchesUser = !cmd.userId || msg.author.id === cmd.userId;
         let matchesContent = true;
-        if (filter.content) {
-          matchesContent = filter.matchType === 'exact' 
-            ? msg.content === filter.content 
-            : msg.content.includes(filter.content);
+        
+        if (cmd.conditionValue) {
+          const content = msg.content;
+          const trigger = cmd.conditionValue;
+          
+          switch (cmd.matchType) {
+            case 'exact':
+              matchesContent = content === trigger;
+              break;
+            case 'startsWith':
+              matchesContent = content.startsWith(trigger);
+              break;
+            case 'regex':
+              try {
+                const re = new RegExp(trigger, 'i');
+                matchesContent = re.test(content);
+              } catch (e) {
+                matchesContent = false;
+              }
+              break;
+            case 'contains':
+            default:
+              matchesContent = content.includes(trigger);
+              break;
+          }
         }
 
         if (matchesUser && matchesContent) {
           await this.executeCommandActions(cmd, msg);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error(`[ERROR] handleMessage failed for cmd ${cmd.name}:`, e);
+      }
     }
   }
 

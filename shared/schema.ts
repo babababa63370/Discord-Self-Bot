@@ -12,9 +12,11 @@ export const botConfigs = pgTable("bot_configs", {
 export const commands = pgTable("commands", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  conditionType: text("condition_type").notNull(), // 'interval', 'message'
-  conditionValue: text("condition_value").notNull(), // e.g. '120' or JSON string for message filter
+  conditionType: text("condition_type").notNull(), // 'interval', 'message', 'regex'
+  conditionValue: text("condition_value").notNull(), // value for interval (mins) or message trigger
   channelId: text("channel_id").notNull(),
+  userId: text("user_id"), // Optional: filter by user ID for message triggers
+  matchType: text("match_type"), // 'exact', 'contains', 'startsWith', 'regex'
   targetBotId: text("target_bot_id"), // Optional ID of the bot to send slash commands to
   isActive: boolean("is_active").default(true).notNull(),
   actions: jsonb("actions").$type<{
