@@ -16,7 +16,11 @@ export const commands = pgTable("commands", {
   conditionValue: text("condition_value").notNull(), // e.g. '120' or JSON string for message filter
   channelId: text("channel_id").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
-  actions: jsonb("actions").$type<string[]>().default([]).notNull(), // List of commands/messages to send
+  actions: jsonb("actions").$type<{
+    type: 'message' | 'wait';
+    value: string;
+    delay?: number;
+  }[]>().default([{ type: 'message', value: '' }]).notNull(), // List of advanced actions
 });
 
 export const insertConfigSchema = createInsertSchema(botConfigs).omit({ id: true });

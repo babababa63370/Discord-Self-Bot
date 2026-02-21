@@ -71,6 +71,48 @@ export function useUpdateCommand() {
   });
 }
 
+export function useTestCommand() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.commands.test.path, { id });
+      const res = await fetch(url, {
+        method: api.commands.test.method,
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to test command");
+      }
+      return api.commands.test.responses[200].parse(await res.json());
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: "Test Successful",
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: "Test Failed",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Test Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useDeleteCommand() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

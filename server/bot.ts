@@ -53,17 +53,27 @@ class BotManager {
     try {
       const channel = await this.client.channels.fetch(cmd.channelId);
       if (channel && channel.isText()) {
-        const actions = cmd.actions && cmd.actions.length > 0 ? cmd.actions : [cmd.name];
+        const actions = cmd.actions && cmd.actions.length > 0 ? cmd.actions : [{ type: 'message', value: cmd.name }];
         
         for (const action of actions) {
-          if (action.startsWith('/')) {
-            const args = action.substring(1).split(' ');
+          if (action.type === 'wait') {
+            const delay = action.delay || parseInt(action.value) || 1000;
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+
+          const content = action.value;
+          if (content.startsWith('/')) {
+            const args = content.substring(1).split(' ');
             const commandName = args.shift()!;
             await (channel as any).sendSlash(this.client.user!.id, commandName, args.join(' '));
           } else {
-            await (channel as any).send(action);
+            await (channel as any).send(content);
           }
-          if (actions.length > 1) await new Promise(r => setTimeout(r, 1000));
+          
+          if (actions.indexOf(action) < actions.length - 1) {
+            await new Promise(r => setTimeout(r, 1000));
+          }
         }
       }
     } catch (e) {
@@ -80,13 +90,23 @@ class BotManager {
       try {
         const filter = JSON.parse(cmd.conditionValue);
         const matchesUser = !filter.userId || msg.author.id === filter.userId;
-        const matchesContent = !filter.content || msg.content.includes(filter.content);
+        
+        let matchesContent = true;
+        if (filter.content) {
+          if (filter.matchType === 'exact') {
+            matchesContent = msg.content === filter.content;
+          } else if (filter.matchType === 'startsWith') {
+            matchesContent = msg.content.startsWith(filter.content);
+          } else {
+            matchesContent = msg.content.includes(filter.content);
+          }
+        }
         
         if (matchesUser && matchesContent) {
           await this.executeCommandActions(cmd);
         }
       } catch (e) {
-        // Silently ignore invalid JSON
+        // Silently ignore invalid JSON or match errors
       }
     }
   }

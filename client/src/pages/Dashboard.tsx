@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useBotConfig, useUpdateBotConfig } from "@/hooks/use-bot-config";
-import { useCommands, useDeleteCommand, useUpdateCommand } from "@/hooks/use-commands";
+import { useCommands, useDeleteCommand, useUpdateCommand, useTestCommand } from "@/hooks/use-commands";
 import { StatusCard } from "@/components/StatusCard";
 import { CommandForm } from "@/components/CommandForm";
 import {
@@ -29,7 +29,9 @@ import {
   Hash, 
   Terminal, 
   Loader2,
-  Key
+  Key,
+  Play,
+  MessageSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const updateConfig = useUpdateBotConfig();
   const updateCommand = useUpdateCommand();
   const deleteCommand = useDeleteCommand();
+  const testCommand = useTestCommand();
 
   const [token, setToken] = useState("");
   const [isCommandDialogOpen, setIsCommandDialogOpen] = useState(false);
@@ -122,14 +125,14 @@ export default function Dashboard() {
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
                   <Terminal className="mr-2 h-4 w-4" />
-                  New Command
+                  New Rule
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card border-white/10 sm:max-w-[500px]">
+              <DialogContent className="bg-card border-white/10 sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create Automation Rule</DialogTitle>
                   <DialogDescription>
-                    Configure a new automated command to run on a schedule.
+                    Configure advanced sequence actions and custom triggers.
                   </DialogDescription>
                 </DialogHeader>
                 <CommandForm onSuccess={() => setIsCommandDialogOpen(false)} />
@@ -149,7 +152,21 @@ export default function Dashboard() {
                   transition={{ duration: 0.2 }}
                 >
                   <Card className="h-full bg-card/40 border-white/5 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-0 right-0 p-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-primary hover:bg-primary/20"
+                        title="Test Rule"
+                        onClick={() => testCommand.mutate(cmd.id)}
+                        disabled={testCommand.isPending}
+                      >
+                        {testCommand.isPending && testCommand.variables === cmd.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -173,8 +190,8 @@ export default function Dashboard() {
                           className="data-[state=checked]:bg-primary"
                         />
                       </div>
-                      <CardTitle className="text-xl font-mono text-white truncate pr-8">
-                        {cmd.name}
+                      <CardTitle className="text-xl font-mono text-white truncate pr-16">
+                        {cmd.name || (cmd.actions?.[0]?.value ? cmd.actions[0].value.substring(0, 20) : "Unnamed Rule")}
                       </CardTitle>
                     </CardHeader>
                     
@@ -184,10 +201,17 @@ export default function Dashboard() {
                         <span className="font-medium">
                           {cmd.conditionType === 'interval' 
                             ? `Every ${cmd.conditionValue} mins` 
-                            : `Cron: ${cmd.conditionValue}`}
+                            : `On Message Match`}
                         </span>
                       </div>
                       
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground bg-black/20 p-2 rounded-md">
+                        <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="font-medium">
+                          {cmd.actions?.length || 0} Actions in Sequence
+                        </span>
+                      </div>
+
                       <div className="flex items-center gap-3 text-sm text-muted-foreground bg-black/20 p-2 rounded-md">
                         <Hash className="h-4 w-4 shrink-0 text-primary" />
                         <span className="font-mono text-xs truncate" title={cmd.channelId}>
