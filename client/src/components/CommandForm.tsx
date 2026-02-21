@@ -121,6 +121,26 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="targetBotId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Target Bot ID (for Slash Commands)</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="ID of the bot that owns the /command" 
+                    className="bg-background/50 border-white/10 font-mono" 
+                    {...field} 
+                    value={field.value || ''}
+                  />
+                </FormControl>
+                <FormDescription className="text-[10px]">Required if you use slash commands like /topargent</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <div className="space-y-4 p-4 border border-white/5 rounded-lg bg-black/20">

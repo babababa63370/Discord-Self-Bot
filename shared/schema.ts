@@ -15,6 +15,7 @@ export const commands = pgTable("commands", {
   conditionType: text("condition_type").notNull(), // 'interval', 'message'
   conditionValue: text("condition_value").notNull(), // e.g. '120' or JSON string for message filter
   channelId: text("channel_id").notNull(),
+  targetBotId: text("target_bot_id"), // Optional ID of the bot to send slash commands to
   isActive: boolean("is_active").default(true).notNull(),
   actions: jsonb("actions").$type<{
     type: 'message' | 'wait';

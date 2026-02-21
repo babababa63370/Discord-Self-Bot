@@ -66,7 +66,8 @@ class BotManager {
           if (content.startsWith('/')) {
             const args = content.substring(1).split(' ');
             const commandName = args.shift()!;
-            await (channel as any).sendSlash(this.client.user!.id, commandName, args.join(' '));
+            const targetId = cmd.targetBotId || this.client.user!.id; // Default to self if not specified, but usually needs a target bot ID
+            await (channel as any).sendSlash(targetId, commandName, args.join(' '));
           } else {
             await (channel as any).send(content);
           }
