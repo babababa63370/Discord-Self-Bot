@@ -60,13 +60,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCommand(command: InsertCommand): Promise<Command> {
-    const [newCommand] = await db.insert(commands).values(command).returning();
+    const [newCommand] = await db.insert(commands).values(command as any).returning();
     return newCommand;
   }
 
   async updateCommand(id: number, updates: UpdateCommandRequest): Promise<Command> {
     const [updated] = await db.update(commands)
-      .set(updates)
+      .set(updates as any)
       .where(eq(commands.id, id))
       .returning();
     return updated;

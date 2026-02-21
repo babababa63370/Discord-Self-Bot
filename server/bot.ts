@@ -11,7 +11,7 @@ class BotManager {
       this.stop();
     }
     
-    this.client = new Client({ checkUpdate: false });
+    this.client = new Client({ checkUpdate: false } as any);
 
     this.client.on('ready', async () => {
       console.log(`Self-bot logged in as ${this.client?.user?.tag}!`);
@@ -52,8 +52,8 @@ class BotManager {
     
     try {
       const channel = await this.client.channels.fetch(cmd.channelId);
-      if (channel && channel.isText()) {
-        const actions = cmd.actions && cmd.actions.length > 0 ? cmd.actions : [{ type: 'message', value: cmd.name }];
+      if (channel && (channel.isText() || (channel as any).type === 'GUILD_TEXT' || (channel as any).type === 'DM')) {
+        const actions = (cmd.actions && cmd.actions.length > 0 ? cmd.actions : [{ type: 'message', value: cmd.name }]) as any[];
         
         for (const action of actions) {
           if (action.type === 'wait') {
@@ -66,7 +66,10 @@ class BotManager {
           if (content.startsWith('/')) {
             const args = content.substring(1).split(' ');
             const commandName = args.shift()!;
-            const targetId = cmd.targetBotId || this.client.user!.id; // Default to self if not specified, but usually needs a target bot ID
+            const targetId = cmd.targetBotId;
+            if (!targetId) {
+              throw new Error("Target Bot ID is required for slash commands (e.g. /ping)");
+            }
             await (channel as any).sendSlash(targetId, commandName, args.join(' '));
           } else {
             await (channel as any).send(content);
