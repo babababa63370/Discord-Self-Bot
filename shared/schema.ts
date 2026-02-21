@@ -18,7 +18,7 @@ export const commands = pgTable("commands", {
   targetBotId: text("target_bot_id"), // Optional ID of the bot to send slash commands to
   isActive: boolean("is_active").default(true).notNull(),
   actions: jsonb("actions").$type<{
-    type: 'message' | 'wait';
+    type: 'message' | 'wait' | 'if_contains' | 'if_author' | 'action';
     value: string;
     delay?: number;
   }[]>().default([{ type: 'message', value: '' }]).notNull(), // List of advanced actions

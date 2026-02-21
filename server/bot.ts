@@ -47,7 +47,7 @@ class BotManager {
     this.intervals = [];
   }
 
-  async executeCommandActions(cmd: Command) {
+  async executeCommandActions(cmd: Command, triggerMsg?: any) {
     if (!this.client || !this.client.isReady()) return;
 
     try {
@@ -59,14 +59,40 @@ class BotManager {
           : [{ type: 'message', value: cmd.name }]) as any[];
 
         for (const action of actions) {
+          // Placeholder replacement system
+          const replacePlaceholders = (text: string) => {
+            if (!triggerMsg || typeof text !== 'string') return text;
+            return text
+              .replace(/{{author}}/g, triggerMsg.author?.id || '')
+              .replace(/{{content}}/g, triggerMsg.content || '')
+              .replace(/{{channel}}/g, triggerMsg.channelId || '');
+          };
+
           if (action.type === 'wait') {
             const delay = action.delay || parseInt(action.value) || 1000;
             await new Promise(r => setTimeout(r, delay));
             continue;
           }
 
-          let content = action.value;
+          if (action.type === 'if_contains') {
+            if (!triggerMsg || !triggerMsg.content.includes(action.value)) {
+              console.log(`[SCRATCH] Condition if_contains non remplie, arrêt.`);
+              break;
+            }
+            continue;
+          }
+
+          if (action.type === 'if_author') {
+            if (!triggerMsg || triggerMsg.author.id !== action.value) {
+              console.log(`[SCRATCH] Condition if_author non remplie, arrêt.`);
+              break;
+            }
+            continue;
+          }
+
+          let content = replacePlaceholders(action.value);
           try {
+            // Handle both 'message' and 'action' types as potential commands or plain messages
             if (content.startsWith('/')) {
               const argsArray = content.substring(1).split(' ');
               const commandName = argsArray.shift()!;
@@ -74,7 +100,6 @@ class BotManager {
 
               if (!targetId) throw new Error("Target Bot ID manquant");
 
-              // Correction pour éviter l'erreur "Value outside range (0)"
               let finalArgs = argsArray.join(' ').trim();
               if (commandName.includes('top') && (finalArgs === "" || finalArgs === "0")) {
                 finalArgs = "1"; 
@@ -82,17 +107,18 @@ class BotManager {
 
               await (channel as any).sendSlash(targetId, commandName, finalArgs);
               console.log(`[/] Action Slash: /${commandName} ${finalArgs}`);
-
             } else {
               await (channel as any).send(content);
               console.log(`[MSG] Action Message: ${content}`);
             }
           } catch (e) {
             console.error(`[ERROR] Action failed (${content}):`, e);
+            // On continue au bloc suivant en cas d'erreur
           }
 
-          if (actions.indexOf(action) < actions.length - 1) {
-            await new Promise(r => setTimeout(r, 2000));
+          // Small default delay between actions if not specified via 'wait'
+          if (actions.indexOf(action) < actions.length - 1 && action.type !== 'wait') {
+            await new Promise(r => setTimeout(r, 1000));
           }
         }
       }
@@ -106,12 +132,22 @@ class BotManager {
 
     // --- NOUVEAU : Commande de test manuel !+test [id] ---
     if (msg.content.startsWith('!+test')) {
-      const argId = msg.content.split(' ')[1];
+      const parts = msg.content.split(' ');
+      const argId = parts[1];
+      const simulatedContent = parts.slice(2).join(' ') || "Test content";
+      
       if (argId) {
         const targetCmd = commands.find(c => c.id === parseInt(argId));
         if (targetCmd) {
-          console.log(`[TEST] Lancement manuel de la commande ID: ${argId}`);
-          await this.executeCommandActions(targetCmd);
+          console.log(`[TEST] Lancement manuel simulé de la commande ID: ${argId}`);
+          // Simulate a full message object for placeholders
+          const simulatedMsg = {
+            ...msg,
+            content: simulatedContent,
+            author: msg.author,
+            channelId: msg.channelId
+          };
+          await this.executeCommandActions(targetCmd, simulatedMsg);
           return;
         }
       }
@@ -137,7 +173,7 @@ class BotManager {
         }
 
         if (matchesUser && matchesContent) {
-          await this.executeCommandActions(cmd);
+          await this.executeCommandActions(cmd, msg);
         }
       } catch (e) {}
     }
