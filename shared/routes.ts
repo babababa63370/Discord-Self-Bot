@@ -68,6 +68,14 @@ export const api = {
         204: z.void(),
         404: errorSchemas.notFound,
       }
+    },
+    test: {
+      method: 'POST' as const,
+      path: '/api/commands/:id/test' as const,
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        404: errorSchemas.notFound,
+      }
     }
   }
 };

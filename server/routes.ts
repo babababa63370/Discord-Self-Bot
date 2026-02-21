@@ -84,5 +84,21 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  app.post(api.commands.test.path, async (req, res) => {
+    const cmd = (await storage.getCommands()).find(c => c.id === Number(req.params.id));
+    if (!cmd) return res.status(404).json({ message: 'Command not found' });
+    
+    if (!botManager.client || !botManager.client.isReady()) {
+      return res.status(400).json({ success: false, message: 'Bot not connected' });
+    }
+    
+    try {
+      await botManager.executeCommandActions(cmd);
+      res.json({ success: true, message: 'Test executed' });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
   return httpServer;
 }

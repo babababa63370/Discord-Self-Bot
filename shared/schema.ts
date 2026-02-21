@@ -1,4 +1,4 @@
-import { pgTable, text, serial, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,11 +11,12 @@ export const botConfigs = pgTable("bot_configs", {
 
 export const commands = pgTable("commands", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(), // e.g. "/bump" or standard text
-  conditionType: text("condition_type").notNull(), // 'interval', 'cron', etc.
-  conditionValue: text("condition_value").notNull(), // e.g., '120' for 120 minutes
+  name: text("name").notNull(),
+  conditionType: text("condition_type").notNull(), // 'interval', 'message'
+  conditionValue: text("condition_value").notNull(), // e.g. '120' or JSON for message filter
   channelId: text("channel_id").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  actions: jsonb("actions").$type<string[]>().default([]).notNull(), // List of commands/messages to send
 });
 
 export const insertConfigSchema = createInsertSchema(botConfigs).omit({ id: true });

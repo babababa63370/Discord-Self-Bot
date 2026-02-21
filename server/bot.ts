@@ -1,6 +1,6 @@
 import { Client } from "discord.js-selfbot-v13";
 import { storage } from "./storage";
-import { type BotConfig } from "@shared/schema";
+import { type BotConfig, type Command } from "@shared/schema";
 
 class BotManager {
   public client: Client | null = null;
@@ -11,14 +11,17 @@ class BotManager {
       this.stop();
     }
     
-    this.client = new Client({
-      checkUpdate: false,
-    });
+    this.client = new Client({ checkUpdate: false });
 
     this.client.on('ready', async () => {
       console.log(`Self-bot logged in as ${this.client?.user?.tag}!`);
       await storage.updateConfigStatus(true, null);
       this.reloadCommands();
+    });
+
+    this.client.on('messageCreate', async (msg) => {
+      if (msg.author.id === this.client?.user?.id) return;
+      this.handleMessage(msg);
     });
 
     try {
@@ -44,60 +47,70 @@ class BotManager {
     this.intervals = [];
   }
 
-  async reloadCommands() {
+  async executeCommandActions(cmd: Command) {
     if (!this.client || !this.client.isReady()) return;
     
-    this.clearIntervals();
-    
-    const commands = await storage.getCommands();
-    
-    for (const cmd of commands) {
-      if (!cmd.isActive) continue;
-      
-      if (cmd.conditionType === 'interval') {
-        const minutes = parseInt(cmd.conditionValue, 10);
-        if (isNaN(minutes) || minutes <= 0) continue;
+    try {
+      const channel = await this.client.channels.fetch(cmd.channelId);
+      if (channel && channel.isText()) {
+        const actions = cmd.actions && cmd.actions.length > 0 ? cmd.actions : [cmd.name];
         
-        const interval = setInterval(async () => {
-          try {
-            const channel = await this.client?.channels.fetch(cmd.channelId);
-            if (channel && channel.isText()) {
-              if (cmd.name.startsWith('/')) {
-                // Execute slash command
-                const args = cmd.name.substring(1).split(' ');
-                const commandName = args.shift()!;
-                await channel.sendSlash(this.client!.user!.id, commandName, args.join(' '));
-              } else {
-                await channel.send(cmd.name);
-              }
-            }
-          } catch (e) {
-            console.error(`Failed to execute interval command ${cmd.name}:`, e);
+        for (const action of actions) {
+          if (action.startsWith('/')) {
+            const args = action.substring(1).split(' ');
+            const commandName = args.shift()!;
+            await (channel as any).sendSlash(this.client.user!.id, commandName, args.join(' '));
+          } else {
+            await (channel as any).send(action);
           }
-        }, minutes * 60 * 1000);
+          // Small delay between multiple actions
+          if (actions.length > 1) await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to execute actions for command ${cmd.name}:`, e);
+      throw e;
+    }
+  }
+
+  private async handleMessage(msg: any) {
+    const commands = await storage.getCommands();
+    for (const cmd of commands) {
+      if (!cmd.isActive || cmd.conditionType !== 'message') continue;
+      
+      try {
+        const filter = JSON.parse(cmd.conditionValue);
+        const matchesUser = !filter.userId || msg.author.id === filter.userId;
+        const matchesContent = !filter.content || msg.content.includes(filter.content);
         
-        this.intervals.push(interval);
+        if (matchesUser && matchesContent) {
+          await this.executeCommandActions(cmd);
+        }
+      } catch (e) {
+        console.error("Failed to parse message filter:", e);
       }
     }
   }
 
-  async syncConfig(config: BotConfig) {
-    if (config.isActive && !this.client) {
-      await this.start(config.token);
-    } else if (!config.isActive && this.client) {
-      this.stop();
-    } else if (config.isActive && this.client) {
-       // if token changed
-       if (this.client.token !== config.token) {
-           await this.start(config.token);
-       }
+  async reloadCommands() {
+    if (!this.client || !this.client.isReady()) return;
+    this.clearIntervals();
+    
+    const commands = await storage.getCommands();
+    for (const cmd of commands) {
+      if (!cmd.isActive || cmd.conditionType !== 'interval') continue;
+      
+      const minutes = parseInt(cmd.conditionValue, 10);
+      if (isNaN(minutes) || minutes <= 0) continue;
+      
+      const interval = setInterval(() => this.executeCommandActions(cmd), minutes * 60 * 1000);
+      this.intervals.push(interval);
     }
   }
 }
 
 export const botManager = new BotManager();
 
-// On startup, we can check if it was active
 setTimeout(async () => {
   try {
     const config = await storage.getConfig();
