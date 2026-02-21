@@ -63,16 +63,20 @@ class BotManager {
           }
 
           const content = action.value;
-          if (content.startsWith('/')) {
-            const args = content.substring(1).split(' ');
-            const commandName = args.shift()!;
-            const targetId = cmd.targetBotId;
-            if (!targetId) {
-              throw new Error("Target Bot ID is required for slash commands (e.g. /ping)");
+          try {
+            if (content.startsWith('/')) {
+              const args = content.substring(1).split(' ');
+              const commandName = args.shift()!;
+              const targetId = cmd.targetBotId;
+              if (!targetId) {
+                throw new Error("Target Bot ID is required for slash commands (e.g. /ping)");
+              }
+              await (channel as any).sendSlash(targetId, commandName, args.join(' '));
+            } else {
+              await (channel as any).send(content);
             }
-            await (channel as any).sendSlash(targetId, commandName, args.join(' '));
-          } else {
-            await (channel as any).send(content);
+          } catch (e) {
+            console.error(`Failed to execute action "${content}" for command ${cmd.name}:`, e);
           }
           
           if (actions.indexOf(action) < actions.length - 1) {
@@ -81,8 +85,7 @@ class BotManager {
         }
       }
     } catch (e) {
-      console.error(`Failed to execute actions for command ${cmd.name}:`, e);
-      throw e;
+      console.error(`General failure in executeCommandActions for ${cmd.name}:`, e);
     }
   }
 
