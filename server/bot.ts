@@ -172,10 +172,10 @@ class BotManager {
           
           switch (cmd.matchType) {
             case 'exact':
-              matchesContent = content === trigger;
+              matchesContent = content.trim() === trigger.trim();
               break;
             case 'startsWith':
-              matchesContent = content.startsWith(trigger);
+              matchesContent = content.trim().startsWith(trigger.trim());
               break;
             case 'regex':
               try {

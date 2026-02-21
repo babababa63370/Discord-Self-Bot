@@ -104,10 +104,10 @@ export function CommandForm({ onSuccess }: CommandFormProps) {
               name="conditionValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{conditionType === 'interval' ? 'Minutes' : 'Message Content'}</FormLabel>
+                  <FormLabel>{conditionType === 'interval' ? 'Minutes' : 'Message Content (Text or Emoji)'}</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder={conditionType === "interval" ? "120" : 'Hello world'} 
+                      placeholder={conditionType === "interval" ? "120" : 'Hello world 🚀'} 
                       className="bg-background/50 border-white/10"
                       {...field} 
                     />
